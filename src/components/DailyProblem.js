@@ -2,7 +2,14 @@ import React, { useState, useEffect } from "react";
 import { format, subDays } from "date-fns";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { FaPlay, FaCopy, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
+import {
+  FaPlay,
+  FaCopy,
+  FaEdit,
+  FaCheck,
+  FaTimes,
+  FaExclamationTriangle,
+} from "react-icons/fa";
 import Editor from "@monaco-editor/react";
 import { problemsData } from "../utils/problemsData";
 
@@ -15,6 +22,12 @@ function DailyProblem() {
   const [isEditingTestCase, setIsEditingTestCase] = useState(false);
   const [editedTestCase, setEditedTestCase] = useState("");
   const [consoleOutput, setConsoleOutput] = useState([]);
+  const [testResults, setTestResults] = useState({
+    status: null, // 'success' | 'error' | null
+    expected: null,
+    actual: null,
+    passed: false,
+  });
 
   const formattedDate = format(currentDate, "yyyy-MM-dd");
   const problem = problemsData[formattedDate] || {
@@ -43,8 +56,13 @@ function DailyProblem() {
       // Reset outputs
       setOutput("");
       setConsoleOutput([]);
+      setTestResults({
+        status: null,
+        expected: null,
+        actual: null,
+        passed: false,
+      });
 
-      // Create a proxy for console.log
       const logs = [];
       const proxiedConsole = {
         log: (...args) => {
@@ -76,17 +94,50 @@ function DailyProblem() {
         },
       };
 
-      // Create a safe evaluation environment with proxied console
       const safeEval = new Function(
         "console",
         `${codeToExecute}\nreturn ${problem.testCase}`
       );
 
       const result = safeEval(proxiedConsole);
-      setOutput(JSON.stringify(result));
+
+      // Standardize the output format
+      const actualOutput = JSON.stringify(result);
+      const expectedOutput = problem.expectedOutput;
+
+      // Try parsing both outputs to compare their values rather than their string representations
+      let parsedActual, parsedExpected;
+      try {
+        parsedActual = JSON.parse(actualOutput);
+        parsedExpected = JSON.parse(expectedOutput);
+      } catch (e) {
+        // If parsing fails, fall back to string comparison
+        parsedActual = actualOutput;
+        parsedExpected = expectedOutput;
+      }
+
+      // Deep equality comparison
+      const isEqual =
+        JSON.stringify(parsedActual) === JSON.stringify(parsedExpected);
+
       setConsoleOutput(logs);
+      setOutput(actualOutput);
+
+      // Compare results
+      setTestResults({
+        status: isEqual ? "success" : "error",
+        expected: expectedOutput,
+        actual: actualOutput,
+        passed: isEqual,
+      });
     } catch (error) {
       setOutput(`Error: ${error.message}`);
+      setTestResults({
+        status: "error",
+        expected: problem.expectedOutput,
+        actual: "Runtime Error",
+        passed: false,
+      });
     }
   };
 
@@ -248,6 +299,113 @@ function DailyProblem() {
     setEditedTestCase(problem.testCase);
   };
 
+  const generateHints = (expected, actual) => {
+    const hints = [];
+
+    try {
+      const parsedExpected = JSON.parse(expected);
+      const parsedActual = JSON.parse(actual);
+
+      // Type mismatch check
+      if (typeof parsedExpected !== typeof parsedActual) {
+        hints.push(
+          `Type mismatch: Expected ${typeof parsedExpected} but got ${typeof parsedActual}`
+        );
+      }
+
+      // Array specific checks
+      if (Array.isArray(parsedExpected) && Array.isArray(parsedActual)) {
+        if (parsedExpected.length !== parsedActual.length) {
+          hints.push(
+            `Array length mismatch: Expected length ${parsedExpected.length} but got ${parsedActual.length}`
+          );
+        }
+
+        // Check for order differences
+        const hasOrderDiff = parsedExpected.some(
+          (val, idx) => val !== parsedActual[idx]
+        );
+        if (hasOrderDiff && parsedExpected.length === parsedActual.length) {
+          hints.push("Array elements are in different order");
+        }
+
+        // Check for missing/extra elements
+        const missingElements = parsedExpected.filter(
+          (x) => !parsedActual.includes(x)
+        );
+        const extraElements = parsedActual.filter(
+          (x) => !parsedExpected.includes(x)
+        );
+        if (missingElements.length > 0) {
+          hints.push(`Missing elements: ${missingElements.join(", ")}`);
+        }
+        if (extraElements.length > 0) {
+          hints.push(`Extra elements: ${extraElements.join(", ")}`);
+        }
+      }
+
+      // Object specific checks
+      if (
+        typeof parsedExpected === "object" &&
+        !Array.isArray(parsedExpected)
+      ) {
+        const expectedKeys = Object.keys(parsedExpected);
+        const actualKeys = Object.keys(parsedActual);
+
+        const missingKeys = expectedKeys.filter(
+          (key) => !actualKeys.includes(key)
+        );
+        const extraKeys = actualKeys.filter(
+          (key) => !expectedKeys.includes(key)
+        );
+
+        if (missingKeys.length > 0) {
+          hints.push(`Missing properties: ${missingKeys.join(", ")}`);
+        }
+        if (extraKeys.length > 0) {
+          hints.push(`Extra properties: ${extraKeys.join(", ")}`);
+        }
+      }
+
+      // Number specific checks
+      if (
+        typeof parsedExpected === "number" &&
+        typeof parsedActual === "number"
+      ) {
+        if (Math.abs(parsedExpected - parsedActual) < 0.0001) {
+          hints.push(
+            "Numbers are very close - might be a floating-point precision issue"
+          );
+        }
+      }
+    } catch (error) {
+      // Handle string comparison if JSON parsing fails
+      if (expected.length !== actual.length) {
+        hints.push(
+          `Length mismatch: Expected length ${expected.length} but got ${actual.length}`
+        );
+      }
+
+      // Check for whitespace issues
+      if (expected.trim() === actual.trim()) {
+        hints.push("Check for extra whitespace");
+      }
+
+      // Check for case sensitivity
+      if (expected.toLowerCase() === actual.toLowerCase()) {
+        hints.push("Check letter casing");
+      }
+    }
+
+    // If no specific hints were generated, add general hints
+    if (hints.length === 0) {
+      hints.push("Check data types and values carefully");
+      hints.push("Ensure your logic handles all test cases");
+    }
+
+    return hints;
+  };
+
   return (
     <div className="container mt-12 px-4 py-8 ">
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
@@ -407,6 +565,72 @@ function DailyProblem() {
               <code className="bg-gray-100 px-2 py-1 rounded">
                 {problem.testCase}
               </code>
+            )}
+          </div>
+        )}
+
+        {testResults.status && (
+          <div className="p-4 bg-gray-50 border-t">
+            <div className="mb-4">
+              <div
+                className={`flex items-center gap-2 text-lg font-semibold mb-2 
+                ${testResults.passed ? "text-green-600" : "text-red-600"}`}
+              >
+                {testResults.passed ? (
+                  <>
+                    <FaCheck className="text-green-600" />
+                    Test Case Passed
+                  </>
+                ) : (
+                  <>
+                    <FaTimes className="text-red-600" />
+                    Test Case Failed
+                  </>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-900 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <span>Expected Output:</span>
+                  </div>
+                  <div className="font-mono text-green-400 break-all">
+                    {testResults.expected}
+                  </div>
+                </div>
+
+                <div className="bg-gray-900 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <span>Your Output:</span>
+                  </div>
+                  <div
+                    className={`font-mono break-all ${
+                      testResults.passed ? "text-green-400" : "text-red-400"
+                    }`}
+                  >
+                    {testResults.actual}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {!testResults.passed && testResults.actual !== "Runtime Error" && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <FaExclamationTriangle className="text-yellow-400" />
+                  <div className="text-yellow-700">
+                    <p className="font-semibold">Debugging Hints:</p>
+                    <ul className="list-disc ml-8 mt-2">
+                      {generateHints(
+                        testResults.expected,
+                        testResults.actual
+                      ).map((hint, index) => (
+                        <li key={index}>{hint}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
