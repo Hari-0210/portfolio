@@ -1,17 +1,20 @@
-
 **Cloning an React project and running locally**
 
-### `git clone https://github.com/nithingooud/nithin-portfolio`
-### `cd nithin-portfolio`
+### `git clone https://github.com/Hari-0210/Hari-portfolio`
+
+### `cd Hari-portfolio`
 
 **Look at the files and folder of the project**
 **Delete node_modules folder and package-lock.json file if exists**
 
 **Run this following commands**
-### `npm install` 
+
+### `npm install`
+
 this will create node_modules folder and package-lock.json
 
-### `npm start` 
+### `npm start`
+
 it will start your react app
 
 Now go to http://localhost:3000/ to visit your app
