@@ -410,25 +410,79 @@ function DailyProblem() {
     <div className="container mt-12 px-4 py-8 ">
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
         Daily Coding Problem
+        <div className="mt-2 text-lg font-normal text-gray-600">
+          Solve one programming challenge every day
+        </div>
       </h1>
 
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={handlePrevious}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          Previous Day
-        </button>
-        <h2 className="text-2xl font-semibold bg-gray-100 px-6 py-2 rounded-lg">
-          {formattedDate}
-        </h2>
-        <button
-          onClick={handleNext}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
-          disabled={currentDate >= new Date()}
-        >
-          Next Day
-        </button>
+      <div className="flex flex-col items-center mb-8">
+        {/* Calendar-style date display */}
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden w-64 mb-6">
+          <div className="bg-indigo-600 text-white py-2 px-4">
+            <div className="text-center text-sm font-semibold">
+              {format(currentDate, "MMMM yyyy")}
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="text-4xl font-bold text-center text-gray-800">
+              {format(currentDate, "d")}
+            </div>
+            <div className="text-center text-gray-600 font-medium">
+              {format(currentDate, "EEEE")}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation buttons */}
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={handlePrevious}
+            className="group flex items-center gap-2 px-6 py-2 bg-white border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all duration-200"
+          >
+            <svg
+              className="w-4 h-4 transition-transform group-hover:-translate-x-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Previous Day
+          </button>
+
+          <button
+            onClick={handleNext}
+            className={`group flex items-center gap-2 px-6 py-2 bg-white border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all duration-200 ${
+              currentDate >= new Date() ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={currentDate >= new Date()}
+          >
+            Next Day
+            <svg
+              className="w-4 h-4 transition-transform group-hover:translate-x-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Problem counter */}
+        <div className="text-gray-600 text-sm font-medium">
+          Problem #{format(currentDate, "DDD")} of {format(new Date(), "yyyy")}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-xl overflow-hidden">
