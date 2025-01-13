@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@emailjs/browser": "^4.1.0",
+    "@monaco-editor/react": "^4.6.0",
     "@react-three/drei": "^9.97.5",
     "@react-three/fiber": "^8.15.16",
     "@testing-library/jest-dom": "^5.17.0",
