@@ -11,7 +11,7 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import Editor from "@monaco-editor/react";
-import { problemsData } from "../utils/problemsData";
+import { getProblemForDate } from "../utils/problemUtils";
 
 function DailyProblem() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -28,13 +28,15 @@ function DailyProblem() {
     actual: null,
     passed: false,
   });
-
-  const formattedDate = format(currentDate, "yyyy-MM-dd");
-  const problem = problemsData[formattedDate] || {
-    title: "No problem for this date",
+  const [problem, setProblem] = useState({
+    title: "Loading...",
     code: "",
     language: "javascript",
-  };
+    testCase: "",
+    expectedOutput: "",
+  });
+
+  const formattedDate = format(currentDate, "yyyy-MM-dd");
 
   const handlePrevious = () => {
     setCurrentDate((prev) => subDays(prev, 1));
@@ -50,7 +52,6 @@ function DailyProblem() {
 
   const executeCode = () => {
     try {
-      const problem = problemsData[formattedDate];
       const codeToExecute = isEditing ? editedCode : problem.code;
 
       // Reset outputs
@@ -161,17 +162,16 @@ function DailyProblem() {
     try {
       // First test if the code executes without errors
       const safeEval = new Function(
-        `${editedCode}\nreturn ${problemsData[formattedDate].testCase}`
+        `${editedCode}\nreturn ${problem.testCase}`
       );
       safeEval();
 
-      // If execution successful, update the problem data
-      problemsData[formattedDate] = {
-        ...problemsData[formattedDate],
+      // Update the problem state
+      setProblem((prev) => ({
+        ...prev,
         code: editedCode,
-      };
+      }));
 
-      // Update state
       setIsEditing(false);
       setOutput("Code saved successfully!");
 
@@ -207,7 +207,7 @@ function DailyProblem() {
   // Add this function to handle canceling edits
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedCode(problemsData[formattedDate].code);
+    setEditedCode(problem.code);
     setOutput("");
   };
 
@@ -281,10 +281,10 @@ function DailyProblem() {
       safeEval();
 
       // If execution successful, update the problem data
-      problemsData[formattedDate] = {
-        ...problemsData[formattedDate],
+      setProblem({
+        ...problem,
         testCase: editedTestCase,
-      };
+      });
 
       setIsEditingTestCase(false);
       setOutput("Test case updated successfully!");
@@ -405,6 +405,28 @@ function DailyProblem() {
 
     return hints;
   };
+
+  // Add this useEffect to load the problem
+  useEffect(() => {
+    const loadProblem = async () => {
+      const loadedProblem = await getProblemForDate(formattedDate);
+      console.log("loadedProblem", loadedProblem);
+
+      if (loadedProblem) {
+        setProblem(loadedProblem);
+      } else {
+        setProblem({
+          title: "No problem for this date",
+          code: "",
+          language: "javascript",
+          testCase: "",
+          expectedOutput: "",
+        });
+      }
+    };
+
+    loadProblem();
+  }, [formattedDate]);
 
   return (
     <div className="container mt-12 px-4 py-8 ">
