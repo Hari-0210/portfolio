@@ -7,7 +7,7 @@ const ProjectCard = ({ image, title, description, git, technologies }) => {
   return (
     <div className="max-w-sm sm:max-w-sm md:max-w-sm bg-gray-900 border border-neutral-100 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
       {title === "Snap Shot" && (
-        <a href="#">
+        <a href="javascript:void(0);">
           <img
             className="w-full rounded-t-lg h-auto object-cover "
             src={vpn}
@@ -16,7 +16,7 @@ const ProjectCard = ({ image, title, description, git, technologies }) => {
         </a>
       )}
       {title == "Co People" && (
-        <a href="#">
+        <a href="javascript:void(0);">
           <img
             className="w-full rounded-t-lg h-auto object-cover "
             src={copeople}
@@ -25,7 +25,7 @@ const ProjectCard = ({ image, title, description, git, technologies }) => {
         </a>
       )}
       <div className="p-4 sm:p-6">
-        <a href="#">
+        <a href="javascript:void(0);">
           <h5 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-white bg-clip-text text-transparent bg-gradient-to-r from-yellow-200 to-pink-500">
             {title}
           </h5>
