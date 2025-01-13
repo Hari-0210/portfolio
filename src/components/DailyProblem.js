@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { format, subDays } from "date-fns";
+import { format, getDate, subDays } from "date-fns";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
@@ -12,6 +12,8 @@ import {
 } from "react-icons/fa";
 import Editor from "@monaco-editor/react";
 import { getProblemForDate } from "../utils/problemUtils";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 function DailyProblem() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -35,6 +37,7 @@ function DailyProblem() {
     testCase: "",
     expectedOutput: "",
   });
+  const [availableDates, setAvailableDates] = useState(new Set());
 
   const formattedDate = format(currentDate, "yyyy-MM-dd");
 
@@ -428,6 +431,28 @@ function DailyProblem() {
     loadProblem();
   }, [formattedDate]);
 
+  // Add this useEffect to get available dates
+  useEffect(() => {
+    const loadAvailableDates = async () => {
+      const codeFiles = require.context("!!raw-loader!../code", false, /\.js$/);
+      const dates = codeFiles
+        .keys()
+        .map((key) => key.replace("./", "").replace(".js", ""));
+      setAvailableDates(new Set(dates));
+    };
+
+    loadAvailableDates();
+  }, []);
+
+  // Add this function to highlight dates
+  const highlightWithColors = (date) => {
+    const formattedDate = format(date, "yyyy-MM-dd");
+    if (availableDates.has(formattedDate)) {
+      return "bg-green-500 text-white hover:bg-green-600";
+    }
+    return "bg-red-200 text-gray-400 cursor-not-allowed";
+  };
+
   return (
     <div className="container mt-12 px-4 py-8 ">
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
@@ -438,20 +463,28 @@ function DailyProblem() {
       </h1>
 
       <div className="flex flex-col items-center mb-8">
-        {/* Calendar-style date display */}
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden w-64 mb-6">
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden w-80 mb-6">
           <div className="bg-indigo-600 text-white py-2 px-4">
             <div className="text-center text-sm font-semibold">
-              {format(currentDate, "MMMM yyyy")}
+              Select Problem Date
             </div>
           </div>
           <div className="p-4">
-            <div className="text-4xl font-bold text-center text-gray-800">
-              {format(currentDate, "d")}
-            </div>
-            <div className="text-center text-gray-600 font-medium">
-              {format(currentDate, "EEEE")}
-            </div>
+            <DatePicker
+              selected={currentDate}
+              onChange={(date) => setCurrentDate(date)}
+              dateFormat="MMMM d, yyyy"
+              minDate={new Date("2024-01-01")}
+              maxDate={new Date()}
+              inline
+              calendarClassName="!border-0"
+              dayClassName={highlightWithColors}
+              renderDayContents={(dayOfMonth, date) => (
+                <div className="w-full h-full flex items-center justify-center">
+                  {dayOfMonth}
+                </div>
+              )}
+            />
           </div>
         </div>
 
