@@ -9,6 +9,7 @@ import Experience from "./components/Experience";
 import About from "./components/About";
 import Contact from "./components/Contact";
 import Projects from "./components/Projects";
+import DailyProblem from "./components/DailyProblem";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -20,6 +21,7 @@ root.render(
       <Route path="/projects" element={<Projects />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/daily-problem" element={<DailyProblem />} />
     </Routes>
   </BrowserRouter>
 );
